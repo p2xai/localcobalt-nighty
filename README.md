@@ -57,12 +57,6 @@ A comprehensive suite of tools for downloading media and converting videos to GI
    docker-compose up -d
    ```
 
-5. Pull required images:
-   ```bash
-   docker pull jrottenberg/ffmpeg:latest
-   docker pull dylanninin/giflossy:latest
-   ```
-
 ## Usage
 
 ### 1. Cobalt Downloader (`<p>c` or `<p>cobalt`)
