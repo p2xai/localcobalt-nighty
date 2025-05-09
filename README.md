@@ -1,6 +1,6 @@
 # Unified Cobalt Tools
 
-A comprehensive suite of tools for downloading media and converting videos to GIFs, designed for use with Nighty bot.
+A comprehensive suite of tools for downloading media and converting videos to GIFs, designed for use with Nighty.
 
 ## Features
 
