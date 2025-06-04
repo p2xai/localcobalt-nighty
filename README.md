@@ -19,10 +19,11 @@ A comprehensive suite of tools for downloading media and converting videos to GI
 
 ## Docker Setup
 
-1. Install Docker and Docker Compose:
-   - Windows/Mac: Download Docker Desktop from docker.com
-   - Linux: Install docker and docker-compose packages
+1. Install Docker + Docker Compose
 
+- **Windows / macOS:** [Download Docker Desktop](https://www.docker.com/products/docker-desktop)
+- **Linux:** Install the `docker` and `docker-compose`
+  
 2. Create a directory for Cobalt:
    ```bash
    mkdir cobalt && cd cobalt
