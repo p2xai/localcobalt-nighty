@@ -61,62 +61,62 @@ A comprehensive suite of tools for downloading media and converting videos to GI
 ## Usage
 
 ### 1. Cobalt Downloader (`<p>c` or `<p>cobalt`)
-- Download media: `<p>c <url> [--720p] [--wav] [--audio]`
+ - Download media: `<p>c <url> [-720p] [-wav] [-audio]`
 - Configure: `<p>c url|path|debug|persistent|status`
 
 ### 2. Cobalt GIF (`<p>cg` or `<p>cobaltgif`)
-- Convert to GIF: `<p>cg <url> [--fps=15] [--scale=480:-1] [--time=0-30] [--optimize] [--720p]`
+ - Convert to GIF: `<p>cg <url> [-fps=15] [-scale=480:-1] [-time=0-30] [-optimize] [-720p]`
 - Configure: `<p>cg url|path|debug|persistent|status`
 
 ### 3. Direct FFmpeg GIF (`<p>v2g`)
-- Convert to GIF: `<p>v2g <url or attachment> [--fps=15] [--scale=480:-1] [--time=0-30] [--optimize] [--720p] [--speed=<factor>]`
+ - Convert to GIF: `<p>v2g <url or attachment> [-fps=15] [-scale=480:-1] [-time=0-30] [-optimize] [-720p] [-speed=<factor>]`
 - Configure: `<p>v2g url|path|debug|persistent|status`
 
 ## Parameters
 
 ### Cobalt Downloader
-- Quality: `--144p` to `--4320p`, `--max`
-- Audio: `--wav`, `--ogg`, `--opus`, `--best`
-- Mode: `--audio`, `--mute`
+ - Quality: `-144p` to `-4320p`, `-max`
+ - Audio: `-wav`, `-ogg`, `-opus`, `-best`
+ - Mode: `-audio`, `-mute`
 
 ### Cobalt GIF
-- Quality: `--144p` to `--4320p`, `--max`
-- FPS: `--fps=<number>` (default: 15)
-- Scale: `--scale=<width>:-1` (default: 480:-1)
-- Time: `--time=<start>-<end>` (in seconds)
-- Optimize: `--optimize` (reduces file size)
+ - Quality: `-144p` to `-4320p`, `-max`
+ - FPS: `-fps=<number>` (default: 15)
+ - Scale: `-scale=<width>:-1` (default: 480:-1)
+ - Time: `-time=<start>-<end>` (in seconds)
+ - Optimize: `-optimize` (reduces file size)
 
 ### Direct FFmpeg GIF
-- Quality: `--144p` to `--4320p`, `--max`
-- FPS: `--fps=<number>` (default: 15)
-- Scale: `--scale=<width>:-1` (default: 480:-1)
-- Time: `--time=<start>-<end>` (in seconds)
-- Optimize: `--optimize` (reduces file size)
-- Loop: `--loop=<number>` (default: 0, -1 for infinite)
-- Dither: `--dither=<method>` (default: bayer:bayer_scale=5)
-- Colors: `--colors=<number>` (default: 256)
-- Speed: `--speed=<factor>` (default: 1.0, e.g. 0.5 for half speed, 2.0 for double speed)
+ - Quality: `-144p` to `-4320p`, `-max`
+ - FPS: `-fps=<number>` (default: 15)
+ - Scale: `-scale=<width>:-1` (default: 480:-1)
+ - Time: `-time=<start>-<end>` (in seconds)
+ - Optimize: `-optimize` (reduces file size)
+ - Loop: `-loop=<number>` (default: 0, -1 for infinite)
+ - Dither: `-dither=<method>` (default: bayer:bayer_scale=5)
+ - Colors: `-colors=<number>` (default: 256)
+ - Speed: `-speed=<factor>` (default: 1.0, e.g. 0.5 for half speed, 2.0 for double speed)
 
 ## Examples
 
 1. Download a video in 720p quality:
    ```
-   <p>c https://www.youtube.com/watch?v=dQw4w9WgXcQ --720p
+   <p>c https://www.youtube.com/watch?v=dQw4w9WgXcQ -720p
    ```
 
 2. Download audio only in WAV format:
    ```
-   <p>c https://www.youtube.com/watch?v=dQw4w9WgXcQ --wav --audio
+   <p>c https://www.youtube.com/watch?v=dQw4w9WgXcQ -wav -audio
    ```
 
 3. Convert a video to a GIF with 10 FPS and optimize for size:
    ```
-   <p>cg https://www.youtube.com/watch?v=dQw4w9WgXcQ --fps=10 --optimize
+   <p>cg https://www.youtube.com/watch?v=dQw4w9WgXcQ -fps=10 -optimize
    ```
 
 4. Convert a specific part of a video to a GIF (first 15 seconds):
    ```
-   <p>cg https://www.youtube.com/watch?v=dQw4w9WgXcQ --time=0-15 --scale=640:-1
+   <p>cg https://www.youtube.com/watch?v=dQw4w9WgXcQ -time=0-15 -scale=640:-1
    ```
 
 5. Configure Cobalt to use a custom URL:
@@ -136,7 +136,7 @@ A comprehensive suite of tools for downloading media and converting videos to GI
 
 ## Notes
 
-- The `--optimize` flag is only available for GIF operations
+ - The `-optimize` flag is only available for GIF operations
 - All commands share the same configuration system
 - Files are processed locally in Docker containers
 - Discord has an 8MB file size limit
