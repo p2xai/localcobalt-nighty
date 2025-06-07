@@ -244,11 +244,15 @@ def unified_cobalt_script():
             # Audio format
             elif words[i] in ['-wav', '-ogg', '-opus', '-best']:
                 audio = words[i][1:]
+                audio = words[i][2:]
                 audio_provided = True
                 i += 1
             # Mode flags
             elif words[i] in ['-audio', '-mute']:
                 mode = words[i][1:]
+
+                mode = words[i][2:]
+
                 mode_provided = True
                 i += 1
             # Legacy format support
