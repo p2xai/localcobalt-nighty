@@ -1143,48 +1143,72 @@ def unified_cobalt_script():
         if args.lower().startswith(("url ", "path ", "debug", "persistent", "lb")):
             await handle_config_command(ctx, args, "v2g")
             return
-        
-        # Handle conversion request
+
+        video_path = None
+        parsed_args = None
+
+        # If no args, attempt to use the previous message
         if not args:
-            await ctx.send("❌ Please provide a URL or attach a video file.")
-            return
-        
+            history = [m async for m in ctx.channel.history(limit=2)]
+            if len(history) < 2:
+                return
+            prev_msg = history[1]
+            if prev_msg.attachments:
+                attachment = prev_msg.attachments[0]
+                if not any(attachment.filename.lower().endswith(ext) for ext in ['.mp4', '.mov', '.avi', '.mkv', '.webm']):
+                    return
+                msg = await ctx.send("downloading attachment from previous message...")
+                try:
+                    video_path = await download_file(attachment.url, attachment.filename)
+                    parsed_args = parse_v2g_args("")
+                except Exception as e:
+                    await msg.edit(content=f"error downloading attachment: {str(e)}")
+                    return
+            else:
+                match = re.search(r'https?://\S+', prev_msg.content)
+                if match and any(match.group(0).split('?')[0].lower().endswith(ext) for ext in ['.mp4', '.mov', '.avi', '.mkv', '.webm']):
+                    args = match.group(0)
+                else:
+                    return
+
         # Validate that the first word is a URL before parsing
-        first_word = args.split()[0].lower()
+        first_word = args.split()[0].lower() if args else ""
         if first_word in ["url", "path", "debug", "persistent", "lb", "status"]:
             await handle_config_command(ctx, args, "v2g")
             return
-        
+
+        if parsed_args is None:
+            parsed_args = parse_v2g_args(args)
+
         # Check for attachment
-        video_path = None
-        if ctx.message.attachments:
+        if video_path is None and ctx.message.attachments:
             attachment = ctx.message.attachments[0]
             if not any(attachment.filename.lower().endswith(ext) for ext in ['.mp4', '.mov', '.avi', '.mkv', '.webm']):
-                await ctx.send("❌ Please attach a video file (mp4, mov, avi, mkv, webm)")
+                await ctx.send("please attach a video file (mp4, mov, avi, mkv, webm)")
                 return
             
-            msg = await ctx.send("⏳ Downloading attachment...")
+            msg = await ctx.send("downloading attachment...")
             try:
                 video_path = await download_file(attachment.url, attachment.filename)
             except Exception as e:
-                await msg.edit(content=f"❌ Error downloading attachment: {str(e)}")
+                await msg.edit(content=f"error downloading attachment: {str(e)}")
                 return
-        else:
+        elif video_path is None:
             # Handle URL
             parsed_args = parse_v2g_args(args)
             url_to_download = parsed_args["url"]
             
             if not url_to_download:
-                await ctx.send("❌ Could not parse URL from arguments.")
+                await ctx.send("could not parse url from arguments.")
                 return
             
             # Check if URL is from Twitter/X
             if any(domain in url_to_download.lower() for domain in ['twitter.com', 'x.com']):
                 debug_log(f"Twitter/X URL detected: {url_to_download}", type_="INFO")
-                await ctx.send("❌ Twitter/X URLs are not supported in direct v2g mode. Please use the Cobalt GIF converter instead:\n`<p>cg <url> [options]`")
+                await ctx.send("twitter/x urls are not supported in direct v2g mode. please use the cobalt gif converter instead:\n`<p>cg <url> [options]`")
                 return
             
-            msg = await ctx.send(f"⏳ Downloading video...")
+            msg = await ctx.send(f"downloading video...")
             try:
                 # Download directly without using Cobalt
                 video_path = await download_file(url_to_download, "input_video.mp4")
@@ -1194,13 +1218,13 @@ def unified_cobalt_script():
                 
                 # Provide more specific error messages
                 if "Header value is too long" in error_str:
-                    await msg.edit(content="❌ This website's headers are too large for direct download. Please use the Cobalt GIF converter instead:\n`<p>cg <url> [options]`")
+                    await msg.edit(content="this website's headers are too large for direct download. please use the cobalt gif converter instead:\n`<p>cg <url> [options]`")
                 elif "403" in error_str:
-                    await msg.edit(content="❌ Access denied. The website is blocking direct downloads. Please use the Cobalt GIF converter instead:\n`<p>cg <url> [options]`")
+                    await msg.edit(content="access denied. the website is blocking direct downloads. please use the cobalt gif converter instead:\n`<p>cg <url> [options]`")
                 elif "429" in error_str:
-                    await msg.edit(content="❌ Too many requests. Please wait a few minutes before trying again.")
+                    await msg.edit(content="too many requests. please wait a few minutes before trying again.")
                 else:
-                    await msg.edit(content=f"❌ Error downloading video: {error_str}")
+                    await msg.edit(content=f"error downloading video: {error_str}")
                 return
         
         # Setup directories
@@ -1249,7 +1273,7 @@ def unified_cobalt_script():
         
         # Convert to GIF using FFmpeg
         try:
-            await msg.edit(content="⏳ Converting to GIF...")
+            await msg.edit(content="converting to gif...")
             ffmpeg_cmd = (
                 f'docker run --rm -v "{os.path.dirname(video_path)}:/input" -v "{output_dir}:/output" jrottenberg/ffmpeg '
                 f'-y -i /input/{os.path.basename(video_path)} '
@@ -1265,17 +1289,17 @@ def unified_cobalt_script():
             # Check size
             final_size = os.path.getsize(gif_path) / (1024 * 1024)
             if final_size > 8:
-                await msg.edit(content="⏳ GIF too large for Discord, uploading to 😼 litterbox.catbox.moe...")
+                await msg.edit(content="gif too large for discord, uploading to litterbox.catbox.moe...")
                 try:
                     litterbox_url = await upload_to_litterbox(gif_path)
-                    await ctx.send(f"📁 GIF uploaded to: {litterbox_url}\n⚠️ Note: This link will expire in {getConfigData().get(LITTERBOX_EXPIRY_KEY, '24h')}")
+                    await ctx.send(f"gif uploaded to: {litterbox_url}\nnote: this link will expire in {getConfigData().get(LITTERBOX_EXPIRY_KEY, '24h')}")
                     await msg.delete()
                 except Exception as upload_error:
-                    await msg.edit(content=f"❌ Failed to upload to litterbox: {str(upload_error)}")
+                    await msg.edit(content=f"failed to upload to litterbox: {str(upload_error)}")
                 return
             
             # Send the GIF
-            await msg.edit(content=f"⏳ Sending GIF ({final_size:.2f}MB)...")
+            await msg.edit(content=f"sending gif ({final_size:.2f}mb)...")
             await ctx.send(file=discord.File(gif_path))
             await msg.delete()
             
@@ -1291,20 +1315,20 @@ def unified_cobalt_script():
         except Exception as e:
             error_str = str(e)
             if "413 Payload Too Large" in error_str:
-                user_msg = "❌ GIF exceeds Discord's size limit. Try using -optimize, reducing quality, or shortening duration."
+                user_msg = "gif exceeds discord's size limit. try using -optimize, reducing quality, or shortening duration."
             elif "Option vf (set video filters) cannot be applied to input url" in error_str:
                 debug_log(f"FFmpeg command error: {error_str}", type_="ERROR")
-                user_msg = "❌ Error processing video. Please try again with different parameters."
+                user_msg = "error processing video. please try again with different parameters."
             elif "Error parsing options for input file" in error_str:
                 debug_log(f"FFmpeg input error: {error_str}", type_="ERROR")
-                user_msg = "❌ Error reading video file. Please check if the file is valid."
+                user_msg = "error reading video file. please check if the file is valid."
             elif "Error opening input files" in error_str:
                 debug_log(f"FFmpeg file access error: {error_str}", type_="ERROR")
-                user_msg = "❌ Error accessing video file. Please try again."
+                user_msg = "error accessing video file. please try again."
             else:
-                user_msg = f"❌ Error: {error_str}"
+                user_msg = f"error: {error_str}"
             debug_log(f"Error: {error_str}", type_="ERROR")
             await msg.edit(content=user_msg)
 
 # Initialize the script
-unified_cobalt_script() 
+unified_cobalt_script()
