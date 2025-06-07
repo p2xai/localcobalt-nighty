@@ -70,7 +70,8 @@ A comprehensive suite of tools for downloading media and converting videos to GI
 
 ### 3. Direct FFmpeg GIF (`<p>v2g`)
  - Convert to GIF: `<p>v2g <url or attachment> [-fps=15] [-scale=480:-1] [-time=0-30] [-optimize] [-720p] [-speed=<factor>]`
-- Configure: `<p>v2g url|path|debug|persistent|status`
+   - If called without arguments, the command checks the previous message for a video attachment or direct link.
+ - Configure: `<p>v2g url|path|debug|persistent|status`
 
 ## Parameters
 
