@@ -1158,11 +1158,13 @@ def unified_cobalt_script():
                 if not any(attachment.filename.lower().endswith(ext) for ext in ['.mp4', '.mov', '.avi', '.mkv', '.webm']):
                     return
                 msg = await ctx.send("downloading attachment from previous message...")
+
                 try:
                     video_path = await download_file(attachment.url, attachment.filename)
                     parsed_args = parse_v2g_args("")
                 except Exception as e:
                     await msg.edit(content=f"error downloading attachment: {str(e)}")
+
                     return
             else:
                 match = re.search(r'https?://\S+', prev_msg.content)
