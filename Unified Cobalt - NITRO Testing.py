@@ -243,12 +243,16 @@ def unified_cobalt_script():
                 i += 1
             # Audio format
             elif words[i] in ['-wav', '-ogg', '-opus', '-best']:
+                audio = words[i][1:]
                 audio = words[i][2:]
                 audio_provided = True
                 i += 1
             # Mode flags
             elif words[i] in ['-audio', '-mute']:
+                mode = words[i][1:]
+
                 mode = words[i][2:]
+
                 mode_provided = True
                 i += 1
             # Legacy format support
@@ -998,6 +1002,8 @@ def unified_cobalt_script():
     @bot.command(name="cobalt", aliases=["c"], description="Download media using Cobalt")
     async def cobalt_command(ctx, *, args: str = ""):
         """Handle Cobalt download commands"""
+        if ctx.author.bot:
+            return
         await ctx.message.delete()
 
         # Handle configuration commands
@@ -1081,6 +1087,8 @@ def unified_cobalt_script():
     @bot.command(name="cobaltgif", aliases=["cg"], description="Download and convert media to GIF using Cobalt")
     async def cobalt_gif_command(ctx, *, args: str = ""):
         """Handle Cobalt GIF conversion commands"""
+        if ctx.author.bot:
+            return
         await ctx.message.delete()
         
         # Handle configuration commands
@@ -1197,6 +1205,8 @@ def unified_cobalt_script():
     @bot.command(name="v2g", description="Convert video to GIF using FFmpeg with custom parameters")
     async def v2g_command(ctx, *, args: str = ""):
         """Handle direct FFmpeg video to GIF conversion"""
+        if ctx.author.bot:
+            return
         await ctx.message.delete()
         
         # Handle configuration commands
