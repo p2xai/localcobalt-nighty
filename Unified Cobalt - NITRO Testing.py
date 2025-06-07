@@ -1213,21 +1213,45 @@ def unified_cobalt_script():
         if args.lower().startswith(("url ", "path ", "debug", "persistent", "lb", "status", "resetsetup")):
             await handle_config_command(ctx, args, "v2g")
             return
-        
-        # Handle conversion request
+
+        video_path = None
+        parsed_args = None
+
+        # If no args, try using the previous message
         if not args:
-            await ctx.send("please provide a url or attachment to convert.")
-            return
-        
+            history = [m async for m in ctx.channel.history(limit=2)]
+            if len(history) < 2:
+                return
+            prev_msg = history[1]
+            if prev_msg.attachments:
+                attachment = prev_msg.attachments[0]
+                if not any(attachment.filename.lower().endswith(ext) for ext in ['.mp4', '.mov', '.avi', '.mkv', '.webm']):
+                    return
+                msg = await ctx.send("downloading attachment from previous message...")
+                try:
+                    video_path = await download_file(attachment.url, attachment.filename)
+                    parsed_args = parse_v2g_args("")
+                except Exception as e:
+                    await msg.edit(content=f"error downloading attachment: {str(e)}")
+                    return
+            else:
+                match = re.search(r'https?://\S+', prev_msg.content)
+                if match and any(match.group(0).split('?')[0].lower().endswith(ext) for ext in ['.mp4', '.mov', '.avi', '.mkv', '.webm']):
+                    args = match.group(0)
+                else:
+                    return
+
         # Validate that the first word is a URL before parsing
-        first_word = args.split()[0].lower()
+        first_word = args.split()[0].lower() if args else ""
         if first_word in ["url", "path", "debug", "persistent", "lb", "status", "resetsetup"]:
             await handle_config_command(ctx, args, "v2g")
             return
-        
+
+        if parsed_args is None:
+            parsed_args = parse_v2g_args(args)
+
         # Check for attachment
-        video_path = None
-        if ctx.message.attachments:
+        if video_path is None and ctx.message.attachments:
             attachment = ctx.message.attachments[0]
             if not any(attachment.filename.lower().endswith(ext) for ext in ['.mp4', '.mov', '.avi', '.mkv', '.webm']):
                 await ctx.send("please attach a video file (mp4, mov, avi, mkv, webm)")
@@ -1239,7 +1263,7 @@ def unified_cobalt_script():
             except Exception as e:
                 await msg.edit(content=f"error downloading attachment: {str(e)}")
                 return
-        else:
+        elif video_path is None:
             # Handle URL
             parsed_args = parse_v2g_args(args)
             url_to_download = parsed_args["url"]
@@ -1377,4 +1401,4 @@ def unified_cobalt_script():
             await msg.edit(content=user_msg)
 
 # Initialize the script
-unified_cobalt_script() 
+unified_cobalt_script()
