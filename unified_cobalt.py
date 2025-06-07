@@ -2,9 +2,9 @@
     name="Unified Cobalt Tools",
     author="thedorekaczynski",
     description="All-in-one tool for downloading media and converting to GIFs",
-    usage="""<p>c <url> [--720p] [--wav] [--audio] (Cobalt downloader)
-<p>cg <url> [--fps=<fps>] [--scale=<width>:-1] [--time=<start>-<end>] [--optimize] [--720p] (Cobalt GIF converter)
-<p>v2g <url or attachment> [--fps=<fps>] [--scale=<width>:-1] [--time=<start>-<end>] [--optimize] [--720p] [--speed=<factor>] (Direct FFmpeg GIF converter)
+    usage="""<p>c <url> [-720p] [-wav] [-audio] (Cobalt downloader)
+<p>cg <url> [-fps=<fps>] [-scale=<width>:-1] [-time=<start>-<end>] [-optimize] [-720p] (Cobalt GIF converter)
+<p>v2g <url or attachment> [-fps=<fps>] [-scale=<width>:-1] [-time=<start>-<end>] [-optimize] [-720p] [-speed=<factor>] (Direct FFmpeg GIF converter)
 <p>c|cg|v2g url <your_local_cobalt_url>
 <p>c|cg|v2g path <download_path>
 <p>c|cg|v2g debug
@@ -73,53 +73,53 @@ def unified_cobalt_script():
     
     COMMANDS:
     1. Cobalt Downloader (<p>c or <p>cobalt):
-       - Download media: <p>c <url> [--720p] [--wav] [--audio]
+       - Download media: <p>c <url> [-720p] [-wav] [-audio]
        - Configure: <p>c url|path|debug|persistent|status
     
     2. Cobalt GIF (<p>cg or <p>cobaltgif):
-       - Convert to GIF: <p>cg <url> [--fps=15] [--scale=480:-1] [--time=0-30] [--optimize] [--720p]
+       - Convert to GIF: <p>cg <url> [-fps=15] [-scale=480:-1] [-time=0-30] [-optimize] [-720p]
        - Configure: <p>cg url|path|debug|persistent|status
     
     3. Direct FFmpeg GIF (<p>v2g):
-       - Convert to GIF: <p>v2g <url or attachment> [--fps=15] [--scale=480:-1] [--time=0-30] [--optimize] [--720p] [--speed=<factor>]
+       - Convert to GIF: <p>v2g <url or attachment> [-fps=15] [-scale=480:-1] [-time=0-30] [-optimize] [-720p] [-speed=<factor>]
        - Configure: <p>v2g url|path|debug|persistent|status
     
     PARAMETERS:
     Cobalt Downloader:
-    - Quality: --144p to --4320p, --max
-    - Audio: --wav, --ogg, --opus, --best
-    - Mode: --audio, --mute
+    - Quality: -144p to -4320p, -max
+    - Audio: -wav, -ogg, -opus, -best
+    - Mode: -audio, -mute
     
     Cobalt GIF:
-    - Quality: --144p to --4320p, --max
-    - FPS: --fps=<number> (default: 15)
-    - Scale: --scale=<width>:-1 (default: 480:-1)
-    - Time: --time=<start>-<end> (in seconds)
-    - Optimize: --optimize (reduces file size)
+    - Quality: -144p to -4320p, -max
+    - FPS: -fps=<number> (default: 15)
+    - Scale: -scale=<width>:-1 (default: 480:-1)
+    - Time: -time=<start>-<end> (in seconds)
+    - Optimize: -optimize (reduces file size)
     
     Direct FFmpeg GIF:
-    - Quality: --144p to --4320p, --max
-    - FPS: --fps=<number> (default: 15)
-    - Scale: --scale=<width>:-1 (default: 480:-1)
-    - Time: --time=<start>-<end> (in seconds)
-    - Optimize: --optimize (reduces file size)
-    - Loop: --loop=<number> (default: 0, -1 for infinite)
-    - Dither: --dither=<method> (default: bayer:bayer_scale=5)
-    - Colors: --colors=<number> (default: 256)
-    - Speed: --speed=<factor> (default: 1.0, e.g. 0.5 for half speed, 2.0 for double speed)
+    - Quality: -144p to -4320p, -max
+    - FPS: -fps=<number> (default: 15)
+    - Scale: -scale=<width>:-1 (default: 480:-1)
+    - Time: -time=<start>-<end> (in seconds)
+    - Optimize: -optimize (reduces file size)
+    - Loop: -loop=<number> (default: 0, -1 for infinite)
+    - Dither: -dither=<method> (default: bayer:bayer_scale=5)
+    - Colors: -colors=<number> (default: 256)
+    - Speed: -speed=<factor> (default: 1.0, e.g. 0.5 for half speed, 2.0 for double speed)
     
     EXAMPLES:
     1. Download a video in 720p quality:
-       <p>c https://www.youtube.com/watch?v=dQw4w9WgXcQ --720p
+       <p>c https://www.youtube.com/watch?v=dQw4w9WgXcQ -720p
     
     2. Download audio only in WAV format:
-       <p>c https://www.youtube.com/watch?v=dQw4w9WgXcQ --wav --audio
+       <p>c https://www.youtube.com/watch?v=dQw4w9WgXcQ -wav -audio
     
     3. Convert a video to a GIF with 10 FPS and optimize for size:
-       <p>cg https://www.youtube.com/watch?v=dQw4w9WgXcQ --fps=10 --optimize
+       <p>cg https://www.youtube.com/watch?v=dQw4w9WgXcQ -fps=10 -optimize
     
     4. Convert a specific part of a video to a GIF (first 15 seconds):
-       <p>cg https://www.youtube.com/watch?v=dQw4w9WgXcQ --time=0-15 --scale=640:-1
+       <p>cg https://www.youtube.com/watch?v=dQw4w9WgXcQ -time=0-15 -scale=640:-1
     
     5. Configure Cobalt to use a custom URL:
        <p>c url http://my-cobalt-server:9000
@@ -131,7 +131,7 @@ def unified_cobalt_script():
        <p>c status
     
     NOTES:
-    - The --optimize flag is only available for GIF operations
+    - The -optimize flag is only available for GIF operations
     - All commands share the same configuration system
     - Files are processed locally in Docker containers
     - Discord has an 8MB file size limit
@@ -194,8 +194,8 @@ def unified_cobalt_script():
     # Helper function to parse Cobalt arguments
     def parse_cobalt_args(args_str):
         """Parse Cobalt-specific arguments from command string"""
-        # Normalize spaces to handle both --flag=value and --flag value formats
-        args_str = re.sub(r'--(\w+)=(\w+)', r'--\1 \2', args_str)
+        # Normalize spaces to handle both -flag=value and -flag value formats
+        args_str = re.sub(r'-(\w+)=(\w+)', r'-\1 \2', args_str)
         
         # Split into words
         words = args_str.split()
@@ -203,7 +203,7 @@ def unified_cobalt_script():
         # Extract URL (everything before first flag)
         url_parts = []
         i = 0
-        while i < len(words) and not words[i].startswith('--'):
+        while i < len(words) and not words[i].startswith('-'):
             url_parts.append(words[i])
             i += 1
         url = ' '.join(url_parts)
@@ -219,37 +219,37 @@ def unified_cobalt_script():
         mode_provided = False
         
         while i < len(words):
-            # Quality flags (--720p, etc.)
-            quality_match = re.match(r'--(\d+)p$', words[i])
+            # Quality flags (-720p, etc.)
+            quality_match = re.match(r'-(\d+)p$', words[i])
             if quality_match:
                 quality = quality_match.group(1)
                 quality_provided = True
                 i += 1
             # Max quality
-            elif words[i] == '--max':
+            elif words[i] == '-max':
                 quality = "max"
                 quality_provided = True
                 i += 1
             # Audio format
-            elif words[i] in ['--wav', '--ogg', '--opus', '--best']:
-                audio = words[i][2:]
+            elif words[i] in ['-wav', '-ogg', '-opus', '-best']:
+                audio = words[i][1:]
                 audio_provided = True
                 i += 1
             # Mode flags
-            elif words[i] in ['--audio', '--mute']:
-                mode = words[i][2:]
+            elif words[i] in ['-audio', '-mute']:
+                mode = words[i][1:]
                 mode_provided = True
                 i += 1
             # Legacy format support
-            elif words[i] == '--quality' and i + 1 < len(words):
+            elif words[i] == '-quality' and i + 1 < len(words):
                 quality = words[i+1]
                 quality_provided = True
                 i += 2
-            elif words[i] == '--audio' and i + 1 < len(words):
+            elif words[i] == '-audio' and i + 1 < len(words):
                 audio = words[i+1]
                 audio_provided = True
                 i += 2
-            elif words[i] == '--mode' and i + 1 < len(words):
+            elif words[i] == '-mode' and i + 1 < len(words):
                 mode = words[i+1]
                 mode_provided = True
                 i += 2
@@ -273,11 +273,11 @@ def unified_cobalt_script():
         cobalt_args = parse_cobalt_args(args_str)
         
         # Then parse GIF-specific args
-        fps_match = re.search(r'--fps=(\d+)', args_str)
-        scale_match = re.search(r'--scale=(\d+:-1)', args_str)
-        time_match = re.search(r'--time=(\d+)-(\d+)', args_str)
-        optimize_match = re.search(r'--optimize', args_str)
-        speed_match = re.search(r'--speed=(\d*\.?\d+)', args_str)  # Add speed parameter
+        fps_match = re.search(r'-fps=(\d+)', args_str)
+        scale_match = re.search(r'-scale=(\d+:-1)', args_str)
+        time_match = re.search(r'-time=(\d+)-(\d+)', args_str)
+        optimize_match = re.search(r'-optimize', args_str)
+        speed_match = re.search(r'-speed=(\d*\.?\d+)', args_str)  # Add speed parameter
         
         # Get URL and remove GIF flags
         url = cobalt_args["url"]
@@ -307,15 +307,15 @@ def unified_cobalt_script():
         cobalt_args = parse_cobalt_args(args_str)
         
         # Then parse v2g-specific args
-        fps_match = re.search(r'--fps=(\d+)', args_str)
-        scale_match = re.search(r'--scale=(\d+:-1)', args_str)
-        time_match = re.search(r'--time=(\d+)-(\d+)', args_str)
-        optimize_match = re.search(r'--optimize', args_str)
-        quality_match = re.search(r'--(\d+)p', args_str)
-        loop_match = re.search(r'--loop=(\d+)', args_str)
-        dither_match = re.search(r'--dither=(\w+)', args_str)
-        colors_match = re.search(r'--colors=(\d+)', args_str)
-        speed_match = re.search(r'--speed=(\d*\.?\d+)', args_str)  # Add speed parameter
+        fps_match = re.search(r'-fps=(\d+)', args_str)
+        scale_match = re.search(r'-scale=(\d+:-1)', args_str)
+        time_match = re.search(r'-time=(\d+)-(\d+)', args_str)
+        optimize_match = re.search(r'-optimize', args_str)
+        quality_match = re.search(r'-(\d+)p', args_str)
+        loop_match = re.search(r'-loop=(\d+)', args_str)
+        dither_match = re.search(r'-dither=(\w+)', args_str)
+        colors_match = re.search(r'-colors=(\d+)', args_str)
+        speed_match = re.search(r'-speed=(\d*\.?\d+)', args_str)  # Add speed parameter
         
         # Get URL and remove v2g flags
         url = cobalt_args["url"]
@@ -1120,7 +1120,7 @@ def unified_cobalt_script():
         except Exception as e:
             error_str = str(e)
             if "413 Payload Too Large" in error_str:
-                user_msg = "❌ GIF exceeds Discord's size limit. Try using --optimize, reducing quality, or shortening duration."
+                user_msg = "❌ GIF exceeds Discord's size limit. Try using -optimize, reducing quality, or shortening duration."
             elif "invalid or not supported by Cobalt" in error_str:
                 user_msg = "❌ The URL you provided is invalid or not supported by Cobalt. Please check the URL and try again."
             elif "website is not supported by Cobalt" in error_str:
@@ -1291,7 +1291,7 @@ def unified_cobalt_script():
         except Exception as e:
             error_str = str(e)
             if "413 Payload Too Large" in error_str:
-                user_msg = "❌ GIF exceeds Discord's size limit. Try using --optimize, reducing quality, or shortening duration."
+                user_msg = "❌ GIF exceeds Discord's size limit. Try using -optimize, reducing quality, or shortening duration."
             elif "Option vf (set video filters) cannot be applied to input url" in error_str:
                 debug_log(f"FFmpeg command error: {error_str}", type_="ERROR")
                 user_msg = "❌ Error processing video. Please try again with different parameters."
