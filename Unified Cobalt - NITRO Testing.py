@@ -886,6 +886,7 @@ def unified_cobalt_script():
 
         elif action in ("limit", "lbt"):
             if len(args_parts) == 1:
+
                 current_threshold = getConfigData().get(LITTERBOX_SIZE_THRESHOLD_MB_KEY, 50)
                 await ctx.send(
                     f"current litterbox upload threshold: {current_threshold} mb. use `<p>{command_name} limit <size_in_mb>` to set a new one."
@@ -893,6 +894,7 @@ def unified_cobalt_script():
                 return
             try:
                 threshold_mb = float(args_parts[1])
+
                 if threshold_mb <= 0:
                     await ctx.send("limit must be a positive number of megabytes.")
                     return
