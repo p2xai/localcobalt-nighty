@@ -62,16 +62,16 @@ A comprehensive suite of tools for downloading media and converting videos to GI
 
 ### 1. Cobalt Downloader (`<p>c` or `<p>cobalt`)
  - Download media: `<p>c <url> [-720p] [-wav] [-audio]`
-- Configure: `<p>c url|path|debug|persistent|status`
+ - Configure: `<p>c url|path|debug|persistent|limit|status`
 
 ### 2. Cobalt GIF (`<p>cg` or `<p>cobaltgif`)
  - Convert to GIF: `<p>cg <url> [-fps=15] [-scale=480:-1] [-time=0-30] [-optimize] [-720p]`
-- Configure: `<p>cg url|path|debug|persistent|status`
+ - Configure: `<p>cg url|path|debug|persistent|limit|status`
 
 ### 3. Direct FFmpeg GIF (`<p>v2g`)
  - Convert to GIF: `<p>v2g <url or attachment> [-fps=15] [-scale=480:-1] [-time=0-30] [-optimize] [-720p] [-speed=<factor>]`
    - If called without arguments, the command checks the previous message for a video attachment or direct link.
- - Configure: `<p>v2g url|path|debug|persistent|status`
+ - Configure: `<p>v2g url|path|debug|persistent|limit|status`
 
 ## Parameters
 
@@ -140,10 +140,10 @@ A comprehensive suite of tools for downloading media and converting videos to GI
  - The `-optimize` flag is only available for GIF operations
 - All commands share the same configuration system
 - Files are processed locally in Docker containers
-- Discord has an 8MB file size limit
+ - Discord has an 8MB file size limit (customizable with `c limit`)
 - URLs must start with http:// or https://
 - If you get an "invalid link" error, check that the URL is correct and supported by Cobalt
-- Large files (>8MB) are automatically uploaded to litterbox.catbox.moe
+ - Large files above the configured limit are automatically uploaded to litterbox.catbox.moe
 - Debug mode provides detailed logging for troubleshooting
 - Persistent storage keeps files in the configured download path
 

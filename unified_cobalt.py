@@ -10,6 +10,7 @@
 <p>c|cg|v2g debug
 <p>c|cg|v2g persistent
 <p>c|cg|v2g lb <1|12|24|72> (Set litterbox expiry time in hours)
+<p>c|cg|v2g limit <size_mb> (Set file size limit before using Litterbox)
 <p>c|cg|v2g status"""
 )
 def unified_cobalt_script():
@@ -134,10 +135,10 @@ def unified_cobalt_script():
     - The -optimize flag is only available for GIF operations
     - All commands share the same configuration system
     - Files are processed locally in Docker containers
-    - Discord has an 8MB file size limit
+    - Discord has an 8MB file size limit (customizable with `c limit`)
     - URLs must start with http:// or https://
     - If you get an "invalid link" error, check that the URL is correct and supported by Cobalt
-    - Large files (>8MB) are automatically uploaded to litterbox.catbox.moe
+    - Large files (>limit) are automatically uploaded to litterbox.catbox.moe
     - Debug mode provides detailed logging for troubleshooting
     - Persistent storage keeps files in the configured download path
     """
@@ -157,6 +158,7 @@ def unified_cobalt_script():
     DEBUG_ENABLED_KEY = "unified_cobalt_debug"
     PERSISTENT_STORAGE_KEY = "unified_cobalt_persistent"
     LITTERBOX_EXPIRY_KEY = "unified_cobalt_litterbox_expiry"
+    LITTERBOX_SIZE_THRESHOLD_MB_KEY = "unified_cobalt_limit_mb"
     
     # Initialize configuration
     if getConfigData().get(COBALT_URL_KEY) is None:
@@ -171,9 +173,12 @@ def unified_cobalt_script():
     
     if getConfigData().get(PERSISTENT_STORAGE_KEY) is None:
         updateConfigData(PERSISTENT_STORAGE_KEY, False)
-    
+
     if getConfigData().get(LITTERBOX_EXPIRY_KEY) is None:
         updateConfigData(LITTERBOX_EXPIRY_KEY, "24h")  # Default to 24 hours
+
+    if getConfigData().get(LITTERBOX_SIZE_THRESHOLD_MB_KEY) is None:
+        updateConfigData(LITTERBOX_SIZE_THRESHOLD_MB_KEY, 8)
     
     # Helper function for debug logging
     def debug_log(message, type_="INFO"):
@@ -694,8 +699,9 @@ def unified_cobalt_script():
         
         # Check initial size
         initial_size = os.path.getsize(gif_path) / (1024 * 1024)
-        if initial_size > 8 and not optimize:
-            debug_log(f"Initial GIF size ({initial_size:.2f}MB) exceeds Discord limit, skipping optimization", type_="INFO")
+        size_threshold = float(getConfigData().get(LITTERBOX_SIZE_THRESHOLD_MB_KEY, 8))
+        if initial_size > size_threshold and not optimize:
+            debug_log(f"Initial GIF size ({initial_size:.2f}MB) exceeds Discord limit of {size_threshold}MB, skipping optimization", type_="INFO")
             return gif_path, initial_size, None, True  # Return True to indicate it should be uploaded to litterbox
         
         # Optimize if requested
@@ -722,7 +728,7 @@ def unified_cobalt_script():
                 optimized_size = os.path.getsize(optimized_gif) / (1024 * 1024)
                 size_reduction = ((original_size - optimized_size) / original_size) * 100
                 
-                if optimized_size > 8:
+                if optimized_size > size_threshold:
                     debug_log("GIF still too large, trying higher compression", type_="INFO")
                     # Instead of optimizing the already optimized file, optimize the original with higher lossy value
                     giflossy_cmd = (
@@ -742,7 +748,7 @@ def unified_cobalt_script():
                         optimized_size = os.path.getsize(optimized_gif) / (1024 * 1024)
                         size_reduction = ((original_size - optimized_size) / original_size) * 100
                         
-                        if optimized_size > 8:
+                        if optimized_size > size_threshold:
                             debug_log("GIF still too large after second optimization", type_="INFO")
                             return gif_path, optimized_size, original_size, True  # Return True to indicate it should be uploaded to litterbox
                         else:
@@ -758,8 +764,8 @@ def unified_cobalt_script():
         
         # Check final size
         final_size = os.path.getsize(gif_path) / (1024 * 1024)
-        if final_size > 8:
-            debug_log(f"Final GIF size ({final_size:.2f}MB) exceeds Discord limit", type_="INFO")
+        if final_size > size_threshold:
+            debug_log(f"Final GIF size ({final_size:.2f}MB) exceeds Discord limit of {size_threshold}MB", type_="INFO")
             return gif_path, final_size, original_size, True  # Return True to indicate it should be uploaded to litterbox
         
         # Clean up
@@ -779,7 +785,7 @@ def unified_cobalt_script():
         """Upload a file to litterbox.catbox.moe and return the URL.
         
         The uploaded file will be available for the configured duration before expiration.
-        This is used as a fallback when files are too large for Discord's 8MB limit.
+        This is used as a fallback when files are too large for Discord's configured size limit.
         """
         debug_log(f"Uploading file to litterbox.catbox.moe: {file_path}", type_="INFO")
         
@@ -859,6 +865,18 @@ def unified_cobalt_script():
             else:
                 debug_log(f"Invalid litterbox time attempted: {time}", type_="ERROR")
                 await ctx.send("❌ Invalid time. Use 1, 12, 24, or 72 hours")
+
+        elif action == "limit" and len(args_parts) > 1:
+            try:
+                threshold_mb = float(args_parts[1].strip())
+                if threshold_mb <= 0:
+                    await ctx.send("❌ Limit must be a positive number of megabytes.")
+                    return
+                updateConfigData(LITTERBOX_SIZE_THRESHOLD_MB_KEY, threshold_mb)
+                debug_log(f"Litterbox upload limit set to {threshold_mb}MB", type_="SUCCESS")
+                await ctx.send(f"✅ Litterbox upload limit set to: {threshold_mb} MB")
+            except ValueError:
+                await ctx.send(f"❌ Invalid limit. Provide a number in megabytes (e.g., `<p>{command_name} limit 20>`).")
         
         elif action == "status":
             msg = await ctx.send("🔍 Checking configuration...")
@@ -904,7 +922,7 @@ def unified_cobalt_script():
                                 f"**⚙️ Features**:\n"
                                 f"{'✅' if debug_enabled else '❌'} 🐛 Debug Mode\n"
                                 f"{'✅' if persistent_enabled else '❌'} Persistent Storage\n"
-                                f"**📤 Litterbox**: {getConfigData().get(LITTERBOX_EXPIRY_KEY, '24h')} expiry\n\n"
+                                f"**📤 Litterbox**: {getConfigData().get(LITTERBOX_EXPIRY_KEY, '24h')} expiry, {getConfigData().get(LITTERBOX_SIZE_THRESHOLD_MB_KEY, 8)}MB limit\n\n"
                                 f"**📊 Default Settings**:\n"
                                 f"• 🎬 FPS: 15\n"
                                 f"• 📏 Scale: 480:-1 (480px width, auto height)\n"
@@ -933,7 +951,7 @@ def unified_cobalt_script():
                 await msg.edit(content=error_msg)
         
         else:
-            await ctx.send(f"❌ Invalid command. Use `<p>{command_name} url <your_url>`, `<p>{command_name} path <download_path>`, `<p>{command_name} debug`, `<p>{command_name} persistent`, or `<p>{command_name} lb <1|12|24|72>`")
+            await ctx.send(f"❌ Invalid command. Use `<p>{command_name} url <your_url>`, `<p>{command_name} path <download_path>`, `<p>{command_name} debug`, `<p>{command_name} persistent`, `<p>{command_name} lb <1|12|24|72>`, or `<p>{command_name} limit <size_mb>`")
     
     @bot.command(name="cobalt", aliases=["c"], description="Download media using Cobalt")
     async def cobalt_command(ctx, *, args: str = ""):
@@ -941,7 +959,7 @@ def unified_cobalt_script():
         await ctx.message.delete()
         
         # Handle configuration commands
-        if args.lower().startswith(("url ", "path ", "debug", "persistent", "lb")):
+        if args.lower().startswith(("url ", "path ", "debug", "persistent", "lb", "limit")):
             await handle_config_command(ctx, args, "cobalt")
             return
         
@@ -952,7 +970,7 @@ def unified_cobalt_script():
         
         # Validate that the first word is a URL before parsing
         first_word = args.split()[0].lower()
-        if first_word in ["url", "path", "debug", "persistent", "lb", "status"]:
+        if first_word in ["url", "path", "debug", "persistent", "lb", "limit", "status"]:
             await handle_config_command(ctx, args, "cobalt")
             return
         
@@ -976,22 +994,31 @@ def unified_cobalt_script():
             
             # Send the file
             file_size = os.path.getsize(file_path) / (1024 * 1024)
-            await msg.edit(content=f"⏳ Sending file ({file_size:.2f} MB)")
-            
-            try:
-                await ctx.send(file=discord.File(file_path))
-                await msg.delete()
-            except Exception as e:
-                if "413 Payload Too Large" in str(e):
-                    await msg.edit(content="⏳ File too large for Discord, uploading to litterbox.catbox.moe...")
-                    try:
-                        litterbox_url = await upload_to_litterbox(file_path)
-                        await ctx.send(f"📁 File uploaded to: {litterbox_url}\n⚠️ Note: This link will expire in {getConfigData().get(LITTERBOX_EXPIRY_KEY, '24h')}")
-                        await msg.delete()
-                    except Exception as upload_error:
-                        await msg.edit(content=f"❌ Failed to upload to litterbox: {str(upload_error)}")
-                else:
-                    raise
+            size_threshold = float(getConfigData().get(LITTERBOX_SIZE_THRESHOLD_MB_KEY, 8))
+            if file_size > size_threshold:
+                await msg.edit(content="⏳ File exceeds Discord limit, uploading to litterbox.catbox.moe...")
+                try:
+                    litterbox_url = await upload_to_litterbox(file_path)
+                    await ctx.send(f"📁 File uploaded to: {litterbox_url}\n⚠️ Note: This link will expire in {getConfigData().get(LITTERBOX_EXPIRY_KEY, '24h')}")
+                    await msg.delete()
+                except Exception as upload_error:
+                    await msg.edit(content=f"❌ Failed to upload to litterbox: {str(upload_error)}")
+            else:
+                await msg.edit(content=f"⏳ Sending file ({file_size:.2f} MB)")
+                try:
+                    await ctx.send(file=discord.File(file_path))
+                    await msg.delete()
+                except Exception as e:
+                    if "413 Payload Too Large" in str(e):
+                        await msg.edit(content="⏳ File too large for Discord, uploading to litterbox.catbox.moe...")
+                        try:
+                            litterbox_url = await upload_to_litterbox(file_path)
+                            await ctx.send(f"📁 File uploaded to: {litterbox_url}\n⚠️ Note: This link will expire in {getConfigData().get(LITTERBOX_EXPIRY_KEY, '24h')}")
+                            await msg.delete()
+                        except Exception as upload_error:
+                            await msg.edit(content=f"❌ Failed to upload to litterbox: {str(upload_error)}")
+                    else:
+                        raise
             
             # Clean up if not persistent
             if not getConfigData().get(PERSISTENT_STORAGE_KEY, False):
@@ -1004,7 +1031,8 @@ def unified_cobalt_script():
         except Exception as e:
             error_str = str(e)
             if "413 Payload Too Large" in error_str:
-                user_msg = "❌ File exceeds Discord's size limit. Try downloading with lower quality."
+                limit_mb = getConfigData().get(LITTERBOX_SIZE_THRESHOLD_MB_KEY, 8)
+                user_msg = f"❌ File exceeds Discord's {limit_mb}MB limit. Try downloading with lower quality."
             elif "invalid or not supported by Cobalt" in error_str:
                 user_msg = "❌ The URL you provided is invalid or not supported by Cobalt. Please check the URL and try again."
             elif "website is not supported by Cobalt" in error_str:
@@ -1024,7 +1052,7 @@ def unified_cobalt_script():
         await ctx.message.delete()
         
         # Handle configuration commands
-        if args.lower().startswith(("url ", "path ", "debug", "persistent", "lb")):
+        if args.lower().startswith(("url ", "path ", "debug", "persistent", "lb", "limit")):
             await handle_config_command(ctx, args, "cobaltgif")
             return
         
@@ -1035,7 +1063,7 @@ def unified_cobalt_script():
         
         # Validate that the first word is a URL before parsing
         first_word = args.split()[0].lower()
-        if first_word in ["url", "path", "debug", "persistent", "lb", "status"]:
+        if first_word in ["url", "path", "debug", "persistent", "lb", "limit", "status"]:
             await handle_config_command(ctx, args, "cobaltgif")
             return
         
@@ -1071,10 +1099,10 @@ def unified_cobalt_script():
             
             # Step 3: Send the GIF
             await msg.edit(content="⏳ Sending GIF...")
-            
+
             try:
                 if should_upload:
-                    await msg.edit(content="⏳ GIF too large for Discord, uploading to litterbox.catbox.moe...")
+                    await msg.edit(content="⏳ GIF exceeds Discord limit, uploading to litterbox.catbox.moe...")
                     try:
                         litterbox_url = await upload_to_litterbox(gif_path)
                         size_info = f"GIF Size: {final_size:.2f}MB"
@@ -1094,7 +1122,7 @@ def unified_cobalt_script():
                     await msg.delete()
             except Exception as e:
                 if "413 Payload Too Large" in str(e):
-                    await msg.edit(content="⏳ GIF too large for Discord, uploading to litterbox.catbox.moe...")
+                    await msg.edit(content="⏳ GIF exceeds Discord limit, uploading to litterbox.catbox.moe...")
                     try:
                         litterbox_url = await upload_to_litterbox(gif_path)
                         size_info = f"GIF Size: {final_size:.2f}MB"
@@ -1120,7 +1148,8 @@ def unified_cobalt_script():
         except Exception as e:
             error_str = str(e)
             if "413 Payload Too Large" in error_str:
-                user_msg = "❌ GIF exceeds Discord's size limit. Try using -optimize, reducing quality, or shortening duration."
+                limit_mb = getConfigData().get(LITTERBOX_SIZE_THRESHOLD_MB_KEY, 8)
+                user_msg = f"❌ GIF exceeds Discord's {limit_mb}MB limit. Try using -optimize, reducing quality, or shortening duration."
             elif "invalid or not supported by Cobalt" in error_str:
                 user_msg = "❌ The URL you provided is invalid or not supported by Cobalt. Please check the URL and try again."
             elif "website is not supported by Cobalt" in error_str:
@@ -1140,7 +1169,7 @@ def unified_cobalt_script():
         await ctx.message.delete()
         
         # Handle configuration commands
-        if args.lower().startswith(("url ", "path ", "debug", "persistent", "lb")):
+        if args.lower().startswith(("url ", "path ", "debug", "persistent", "lb", "limit")):
             await handle_config_command(ctx, args, "v2g")
             return
 
@@ -1175,7 +1204,7 @@ def unified_cobalt_script():
 
         # Validate that the first word is a URL before parsing
         first_word = args.split()[0].lower() if args else ""
-        if first_word in ["url", "path", "debug", "persistent", "lb", "status"]:
+        if first_word in ["url", "path", "debug", "persistent", "lb", "limit", "status"]:
             await handle_config_command(ctx, args, "v2g")
             return
 
@@ -1290,8 +1319,9 @@ def unified_cobalt_script():
             
             # Check size
             final_size = os.path.getsize(gif_path) / (1024 * 1024)
-            if final_size > 8:
-                await msg.edit(content="gif too large for discord, uploading to litterbox.catbox.moe...")
+            size_threshold = float(getConfigData().get(LITTERBOX_SIZE_THRESHOLD_MB_KEY, 8))
+            if final_size > size_threshold:
+                await msg.edit(content="gif exceeds discord limit, uploading to litterbox.catbox.moe...")
                 try:
                     litterbox_url = await upload_to_litterbox(gif_path)
                     await ctx.send(f"gif uploaded to: {litterbox_url}\nnote: this link will expire in {getConfigData().get(LITTERBOX_EXPIRY_KEY, '24h')}")
@@ -1317,7 +1347,8 @@ def unified_cobalt_script():
         except Exception as e:
             error_str = str(e)
             if "413 Payload Too Large" in error_str:
-                user_msg = "gif exceeds discord's size limit. try using -optimize, reducing quality, or shortening duration."
+                limit_mb = getConfigData().get(LITTERBOX_SIZE_THRESHOLD_MB_KEY, 8)
+                user_msg = f"gif exceeds discord's {limit_mb}MB limit. try using -optimize, reducing quality, or shortening duration."
             elif "Option vf (set video filters) cannot be applied to input url" in error_str:
                 debug_log(f"FFmpeg command error: {error_str}", type_="ERROR")
                 user_msg = "error processing video. please try again with different parameters."
