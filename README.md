@@ -1,5 +1,7 @@
 # Unified Cobalt Tools
 
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/p2xai/localcobalt-nighty)
+
 A comprehensive suite of tools for downloading media and converting videos to GIFs, designed for use with Nighty.
 
 ## Features
