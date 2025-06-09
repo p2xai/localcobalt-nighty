@@ -280,7 +280,7 @@ def unified_cobalt_script():
         # Then parse GIF-specific args
         fps_match = re.search(r'-fps=(\d+)', args_str)
         scale_match = re.search(r'-scale=(\d+:-1)', args_str)
-        time_match = re.search(r'-time=(\d+)-(\d+)', args_str)
+        time_match = re.search(r'-time=(\d+(?:\.\d+)?)-(\d+(?:\.\d+)?)', args_str)
         optimize_match = re.search(r'-optimize', args_str)
         speed_match = re.search(r'-speed=(\d*\.?\d+)', args_str)  # Add speed parameter
         
@@ -314,7 +314,7 @@ def unified_cobalt_script():
         # Then parse v2g-specific args
         fps_match = re.search(r'-fps=(\d+)', args_str)
         scale_match = re.search(r'-scale=(\d+:-1)', args_str)
-        time_match = re.search(r'-time=(\d+)-(\d+)', args_str)
+        time_match = re.search(r'-time=(\d+(?:\.\d+)?)-(\d+(?:\.\d+)?)', args_str)
         optimize_match = re.search(r'-optimize', args_str)
         quality_match = re.search(r'-(\d+)p', args_str)
         loop_match = re.search(r'-loop=(\d+)', args_str)
@@ -642,8 +642,10 @@ def unified_cobalt_script():
         # Prepare time parameters
         time_params = ""
         if time_range:
-            start_time = time_range.split("-")[0]
-            duration = str(int(time_range.split("-")[1]) - int(start_time))
+            start_time, end_time = time_range.split("-")
+            start_float = float(start_time)
+            end_float = float(end_time)
+            duration = str(end_float - start_float)
             time_params = f"-ss {start_time} -t {duration}"
         
         # Generate palette
@@ -1275,7 +1277,9 @@ def unified_cobalt_script():
         # Time parameters
         if parsed_args["time"]:
             start_time, end_time = parsed_args["time"].split("-")
-            duration = str(int(end_time) - int(start_time))
+            start_float = float(start_time)
+            end_float = float(end_time)
+            duration = str(end_float - start_float)
             ffmpeg_params.extend([f"-ss {start_time}", f"-t {duration}"])
         
         # Video filter parameters
