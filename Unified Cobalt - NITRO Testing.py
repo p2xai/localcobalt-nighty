@@ -202,6 +202,15 @@ def unified_cobalt_script():
             download_path = os.path.join(download_path, "workdir")
         os.makedirs(download_path, exist_ok=True)
         return download_path
+
+    # Helper function to sanitize filenames
+    def sanitize_filename(filename: str) -> str:
+        """Return a filesystem-safe filename"""
+        base = os.path.basename(filename)
+        base = base.split('?')[0].split('#')[0]
+        base = re.sub(r'[<>:"/\\|?*]', '_', base)
+        base = re.sub(r'\s+', '_', base)
+        return base
     
     # Helper function to parse Cobalt arguments
     def parse_cobalt_args(args_str):
@@ -369,6 +378,7 @@ def unified_cobalt_script():
     # Helper function to download files
     async def download_file(url, filename):
         """Download a file from URL to the download directory"""
+        filename = sanitize_filename(filename)
         download_path = ensure_download_dir()
         file_path = os.path.join(download_path, filename)
         debug_log(f"Downloading to: {file_path}", type_="INFO")
