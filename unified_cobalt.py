@@ -416,6 +416,7 @@ def unified_cobalt_script():
 
                             debug_log(f"Download completed. Size: {total_size / 1024 / 1024:.2f} MB", type_="SUCCESS")
                             await asyncio.sleep(1)
+
                             return file_path
                         elif response.status == 403 and attempt == 0 and "Range" in headers:
                             debug_log("HTTP 403 received, retrying without Range header", type_="WARNING")
@@ -597,6 +598,7 @@ def unified_cobalt_script():
                                 )
                                 try:
                                     path = await download_file(item_url, filename, referer=url)
+
                                     downloaded_paths.append(path)
                                 except Exception as e:
                                     error_str = str(e)
@@ -629,6 +631,7 @@ def unified_cobalt_script():
                                 try:
                                     audio_path = await download_file(
                                         audio_url, audio_filename, referer=url
+
                                     )
                                     downloaded_paths.append(audio_path)
                                 except Exception as e:
