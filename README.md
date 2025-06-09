@@ -67,11 +67,11 @@ A comprehensive suite of tools for downloading media and converting videos to GI
  - Configure: `<p>c url|path|debug|persistent|limit|status`
 
 ### 2. Cobalt GIF (`<p>cg` or `<p>cobaltgif`)
- - Convert to GIF: `<p>cg <url> [-fps=15] [-scale=480:-1] [-time=0-30] [-optimize] [-720p]`
+ - Convert to GIF: `<p>cg <url> [-fps=15] [-scale=480:-1] [-time=0-30.0] [-optimize] [-720p]`
  - Configure: `<p>cg url|path|debug|persistent|limit|status`
 
 ### 3. Direct FFmpeg GIF (`<p>v2g`)
- - Convert to GIF: `<p>v2g <url or attachment> [-fps=15] [-scale=480:-1] [-time=0-30] [-optimize] [-720p] [-speed=<factor>]`
+ - Convert to GIF: `<p>v2g <url or attachment> [-fps=15] [-scale=480:-1] [-time=0-30.0] [-optimize] [-720p] [-speed=<factor>]`
    - If called without arguments, the command checks the previous message for a video attachment or direct link.
  - Configure: `<p>v2g url|path|debug|persistent|limit|status`
 
@@ -86,14 +86,14 @@ A comprehensive suite of tools for downloading media and converting videos to GI
  - Quality: `-144p` to `-4320p`, `-max`
  - FPS: `-fps=<number>` (default: 15)
  - Scale: `-scale=<width>:-1` (default: 480:-1)
- - Time: `-time=<start>-<end>` (in seconds)
+ - Time: `-time=<start>-<end>` (in seconds, decimals allowed)
  - Optimize: `-optimize` (reduces file size)
 
 ### Direct FFmpeg GIF
  - Quality: `-144p` to `-4320p`, `-max`
  - FPS: `-fps=<number>` (default: 15)
  - Scale: `-scale=<width>:-1` (default: 480:-1)
- - Time: `-time=<start>-<end>` (in seconds)
+ - Time: `-time=<start>-<end>` (in seconds, decimals allowed)
  - Optimize: `-optimize` (reduces file size)
  - Loop: `-loop=<number>` (default: 0, -1 for infinite)
  - Dither: `-dither=<method>` (default: bayer:bayer_scale=5)
@@ -117,9 +117,9 @@ A comprehensive suite of tools for downloading media and converting videos to GI
    <p>cg https://www.youtube.com/watch?v=dQw4w9WgXcQ -fps=10 -optimize
    ```
 
-4. Convert a specific part of a video to a GIF (first 15 seconds):
+4. Convert a specific part of a video to a GIF (first 3.5 seconds):
    ```
-   <p>cg https://www.youtube.com/watch?v=dQw4w9WgXcQ -time=0-15 -scale=640:-1
+   <p>cg https://www.youtube.com/watch?v=dQw4w9WgXcQ -time=0-3.5 -scale=640:-1
    ```
 
 5. Configure Cobalt to use a custom URL:
