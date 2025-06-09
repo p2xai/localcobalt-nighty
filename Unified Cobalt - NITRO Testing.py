@@ -423,6 +423,7 @@ def unified_cobalt_script():
                                 raise Exception("File was not properly saved")
 
                             debug_log(f"Download completed. Size: {total_size / 1024 / 1024:.2f} MB", type_="SUCCESS")
+                            await asyncio.sleep(1)
                             return file_path
                         elif response.status == 403 and attempt == 0 and "Range" in headers:
                             debug_log("HTTP 403 received, retrying without Range header", type_="WARNING")
