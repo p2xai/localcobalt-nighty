@@ -368,56 +368,64 @@ def unified_cobalt_script():
         return stdout.decode()
     
     # Helper function to download files
-    async def download_file(url, filename):
+    async def download_file(url, filename, referer=None):
         """Download a file from URL to the download directory"""
         filename = sanitize_filename(filename)
         download_path = ensure_download_dir()
         file_path = os.path.join(download_path, filename)
         debug_log(f"Downloading to: {file_path}", type_="INFO")
-        
-        headers = {
+
+        base_headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
             "Accept": "*/*",
             "Accept-Language": "en-US,en;q=0.9",
             "Range": "bytes=0-"
         }
+        if referer:
+            base_headers["Referer"] = referer
         
         async with aiohttp.ClientSession() as session:
             try:
                 debug_log(f"Attempting download from URL: {url}", type_="INFO")
-                debug_log(f"Using headers: {headers}", type_="INFO")
-                
-                async with session.get(url, headers=headers, timeout=60) as response:
-                    debug_log(f"Response status: {response.status}", type_="INFO")
-                    debug_log(f"Response headers: {dict(response.headers)}", type_="INFO")
-                    
-                    if response.status in [200, 206]:
-                        debug_log(f"Download connection established (HTTP {response.status})", type_="SUCCESS")
-                        total_size = 0
-                        with open(file_path, 'wb') as f:
-                            while True:
-                                chunk = await response.content.read(8192)
-                                if not chunk:
-                                    break
-                                f.write(chunk)
-                                total_size += len(chunk)
-                                if total_size % (1024 * 1024) == 0:
-                                    debug_log(f"Downloaded: {total_size / 1024 / 1024:.2f} MB", type_="INFO")
-                        
-                        if total_size == 0:
-                            raise Exception("Downloaded file is 0 bytes")
-                        
-                        if not os.path.exists(file_path) or os.path.getsize(file_path) == 0:
-                            raise Exception("File was not properly saved")
-                        
-                        debug_log(f"Download completed. Size: {total_size / 1024 / 1024:.2f} MB", type_="SUCCESS")
-                        return file_path
-                    else:
-                        error_msg = f"Failed to download file: HTTP {response.status}"
-                        debug_log(error_msg, type_="ERROR")
-                        debug_log(f"Response headers: {dict(response.headers)}", type_="ERROR")
-                        debug_log(f"Response content: {await response.text()}", type_="ERROR")
-                        raise Exception(error_msg)
+                headers = base_headers.copy()
+
+                for attempt in range(2):
+                    debug_log(f"Using headers: {headers}", type_="INFO")
+                    async with session.get(url, headers=headers, timeout=60) as response:
+                        debug_log(f"Response status: {response.status}", type_="INFO")
+                        debug_log(f"Response headers: {dict(response.headers)}", type_="INFO")
+
+                        if response.status in [200, 206]:
+                            debug_log(f"Download connection established (HTTP {response.status})", type_="SUCCESS")
+                            total_size = 0
+                            with open(file_path, 'wb') as f:
+                                while True:
+                                    chunk = await response.content.read(8192)
+                                    if not chunk:
+                                        break
+                                    f.write(chunk)
+                                    total_size += len(chunk)
+                                    if total_size % (1024 * 1024) == 0:
+                                        debug_log(f"Downloaded: {total_size / 1024 / 1024:.2f} MB", type_="INFO")
+
+                            if total_size == 0:
+                                raise Exception("Downloaded file is 0 bytes")
+
+                            if not os.path.exists(file_path) or os.path.getsize(file_path) == 0:
+                                raise Exception("File was not properly saved")
+
+                            debug_log(f"Download completed. Size: {total_size / 1024 / 1024:.2f} MB", type_="SUCCESS")
+                            return file_path
+                        elif response.status == 403 and attempt == 0 and "Range" in headers:
+                            debug_log("HTTP 403 received, retrying without Range header", type_="WARNING")
+                            headers.pop("Range", None)
+                            continue
+                        else:
+                            error_msg = f"Failed to download file: HTTP {response.status}"
+                            debug_log(error_msg, type_="ERROR")
+                            debug_log(f"Response headers: {dict(response.headers)}", type_="ERROR")
+                            debug_log(f"Response content: {await response.text()}", type_="ERROR")
+                            raise Exception(error_msg)
             except aiohttp.ClientError as e:
                 error_msg = f"Network error: {str(e)}"
                 debug_log(error_msg, type_="ERROR")
@@ -533,7 +541,7 @@ def unified_cobalt_script():
                             debug_log(f"Filename: {filename}", type_="INFO")
                             
                             try:
-                                file_path = await download_file(download_url, filename)
+                                file_path = await download_file(download_url, filename, referer=url)
                                 return file_path
                             except Exception as e:
                                 error_str = str(e)
@@ -587,7 +595,8 @@ def unified_cobalt_script():
                                     type_="INFO",
                                 )
                                 try:
-                                    path = await download_file(item_url, filename)
+                                    path = await download_file(item_url, filename, referer=url)
+
                                     downloaded_paths.append(path)
                                 except Exception as e:
                                     error_str = str(e)
@@ -619,7 +628,8 @@ def unified_cobalt_script():
                                 )
                                 try:
                                     audio_path = await download_file(
-                                        audio_url, audio_filename
+                                        audio_url, audio_filename, referer=url
+
                                     )
                                     downloaded_paths.append(audio_path)
                                 except Exception as e:
