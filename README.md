@@ -12,6 +12,7 @@ A comprehensive suite of tools for downloading media and converting videos to GI
 
 ### Key Features
 - Download media from supported platforms
+- Multi-image posts are downloaded as separate files
 - Convert videos to GIFs with customizable parameters
 - Optimize GIFs for size and quality
 - Automatic fallback to litterbox.catbox.moe for large files
