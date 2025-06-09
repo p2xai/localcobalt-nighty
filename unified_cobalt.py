@@ -195,6 +195,18 @@ def unified_cobalt_script():
             download_path = os.path.join(download_path, "workdir")
         os.makedirs(download_path, exist_ok=True)
         return download_path
+
+    # Helper function to sanitize filenames
+    def sanitize_filename(filename: str) -> str:
+        """Return a filesystem-safe filename"""
+        # Drop directory components and query strings/fragments
+        base = os.path.basename(filename)
+        base = base.split('?')[0].split('#')[0]
+        # Replace characters that are invalid on Windows and other platforms
+        base = re.sub(r'[<>:"/\\|?*]', '_', base)
+        # Replace remaining whitespace with underscores
+        base = re.sub(r'\s+', '_', base)
+        return base
     
     # Helper function to parse Cobalt arguments
     def parse_cobalt_args(args_str):
@@ -358,6 +370,7 @@ def unified_cobalt_script():
     # Helper function to download files
     async def download_file(url, filename):
         """Download a file from URL to the download directory"""
+        filename = sanitize_filename(filename)
         download_path = ensure_download_dir()
         file_path = os.path.join(download_path, filename)
         debug_log(f"Downloading to: {file_path}", type_="INFO")
@@ -536,47 +549,91 @@ def unified_cobalt_script():
                         
                         elif data.get("status") == "picker":
                             picker_items = data.get("picker", [])
-                            
+
                             if not picker_items:
                                 debug_log("Empty picker items list", type_="ERROR")
                                 debug_log(f"Full response data: {data}", type_="INFO")
                                 raise Exception("No media items found in picker response")
-                            
-                            debug_log(f"Found {len(picker_items)} media items. Using first.", type_="SUCCESS")
-                            
-                            first_item = picker_items[0]
-                            item_url = first_item.get("url", "")
-                            item_type = first_item.get("type", "unknown")
-                            
-                            if not item_url:
-                                debug_log("No URL in first picker item", type_="ERROR")
-                                debug_log(f"First item data: {first_item}", type_="INFO")
-                                raise Exception("No URL found for the first item")
-                            
-                            filename = f"cobalt_{item_type}_{os.path.basename(item_url)}"
-                            if not os.path.splitext(filename)[1]:
-                                if item_type == "photo":
-                                    filename += ".jpg"
-                                elif item_type == "video":
-                                    filename += ".mp4"
-                                elif item_type == "gif":
-                                    filename += ".gif"
-                            
-                            debug_log(f"Downloading picked item - URL: {item_url}, Type: {item_type}", type_="INFO")
-                            try:
-                                file_path = await download_file(item_url, filename)
-                                return file_path
-                            except Exception as e:
-                                error_str = str(e)
-                                if "HTTP 403" in error_str:
-                                    if "instagram.com" in url.lower():
-                                        raise Exception("Instagram is blocking the download. Try:\n• Making sure the content is public\n• Waiting a few minutes\n• Using a different Cobalt instance")
+
+                            debug_log(
+                                f"Found {len(picker_items)} media items. Downloading all.",
+                                type_="SUCCESS",
+                            )
+
+                            downloaded_paths = []
+                            for idx, item in enumerate(picker_items, start=1):
+                                item_url = item.get("url", "")
+                                item_type = item.get("type", "unknown")
+
+                                if not item_url:
+                                    debug_log(
+                                        f"No URL in picker item {idx}", type_="ERROR"
+                                    )
+                                    continue
+
+                                filename = (
+                                    f"cobalt_{idx}_{item_type}_{os.path.basename(item_url)}"
+                                )
+                                if not os.path.splitext(filename)[1]:
+                                    if item_type == "photo":
+                                        filename += ".jpg"
+                                    elif item_type == "video":
+                                        filename += ".mp4"
+                                    elif item_type == "gif":
+                                        filename += ".gif"
+
+                                debug_log(
+                                    f"Downloading picker item {idx} - URL: {item_url}, Type: {item_type}",
+                                    type_="INFO",
+                                )
+                                try:
+                                    path = await download_file(item_url, filename)
+                                    downloaded_paths.append(path)
+                                except Exception as e:
+                                    error_str = str(e)
+                                    if "HTTP 403" in error_str:
+                                        if "instagram.com" in url.lower():
+                                            raise Exception(
+                                                "Instagram is blocking the download. Try:\n• Making sure the content is public\n• Waiting a few minutes\n• Using a different Cobalt instance"
+                                            )
+                                        else:
+                                            raise Exception(
+                                                "Access denied (403) when downloading. The server is blocking the request. Try again later or use a different Cobalt instance."
+                                            )
+                                    elif "HTTP 429" in error_str:
+                                        raise Exception(
+                                            "Too many requests. Please wait a few minutes before trying again."
+                                        )
                                     else:
-                                        raise Exception(f"Access denied (403) when downloading. The server is blocking the request. Try again later or use a different Cobalt instance.")
-                                elif "HTTP 429" in error_str:
-                                    raise Exception("Too many requests. Please wait a few minutes before trying again.")
-                                else:
-                                    raise
+                                        raise
+
+                            audio_url = data.get("audio")
+                            if audio_url:
+                                audio_filename = data.get(
+                                    "audioFilename",
+                                    f"audio_{os.path.basename(audio_url)}" or "audio",
+                                )
+                                debug_log(
+                                    f"Downloading slideshow audio - URL: {audio_url}",
+                                    type_="INFO",
+                                )
+                                try:
+                                    audio_path = await download_file(
+                                        audio_url, audio_filename
+                                    )
+                                    downloaded_paths.append(audio_path)
+                                except Exception as e:
+                                    debug_log(
+                                        f"Failed to download slideshow audio: {str(e)}",
+                                        type_="ERROR",
+                                    )
+
+                            if not downloaded_paths:
+                                raise Exception(
+                                    "Failed to download any items from picker response"
+                                )
+
+                            return downloaded_paths
                         else:
                             debug_log(f"Unknown status in response: {data.get('status')}", type_="ERROR")
                             debug_log(f"Full response data: {data}", type_="INFO")
@@ -987,48 +1044,53 @@ def unified_cobalt_script():
         
         try:
             # Download from Cobalt
-            file_path = await download_from_cobalt(
+            file_result = await download_from_cobalt(
                 url_to_download,
                 parsed_args["quality"],
                 parsed_args["audio"],
                 parsed_args["mode"]
             )
-            
-            # Send the file
-            file_size = os.path.getsize(file_path) / (1024 * 1024)
+
+            file_paths = file_result if isinstance(file_result, list) else [file_result]
             size_threshold = float(getConfigData().get(LITTERBOX_SIZE_THRESHOLD_MB_KEY, 8))
-            if file_size > size_threshold:
-                await msg.edit(content="⏳ File exceeds Discord limit, uploading to litterbox.catbox.moe...")
-                try:
-                    litterbox_url = await upload_to_litterbox(file_path)
-                    await ctx.send(f"📁 File uploaded to: {litterbox_url}\n⚠️ Note: This link will expire in {getConfigData().get(LITTERBOX_EXPIRY_KEY, '24h')}")
-                    await msg.delete()
-                except Exception as upload_error:
-                    await msg.edit(content=f"❌ Failed to upload to litterbox: {str(upload_error)}")
-            else:
-                await msg.edit(content=f"⏳ Sending file ({file_size:.2f} MB)")
-                try:
-                    await ctx.send(file=discord.File(file_path))
-                    await msg.delete()
-                except Exception as e:
-                    if "413 Payload Too Large" in str(e):
-                        await msg.edit(content="⏳ File too large for Discord, uploading to litterbox.catbox.moe...")
-                        try:
-                            litterbox_url = await upload_to_litterbox(file_path)
-                            await ctx.send(f"📁 File uploaded to: {litterbox_url}\n⚠️ Note: This link will expire in {getConfigData().get(LITTERBOX_EXPIRY_KEY, '24h')}")
-                            await msg.delete()
-                        except Exception as upload_error:
-                            await msg.edit(content=f"❌ Failed to upload to litterbox: {str(upload_error)}")
-                    else:
-                        raise
-            
-            # Clean up if not persistent
-            if not getConfigData().get(PERSISTENT_STORAGE_KEY, False):
-                try:
-                    os.remove(file_path)
-                    debug_log(f"Temporary file deleted: {file_path}", type_="SUCCESS")
-                except Exception as e:
-                    debug_log(f"Error deleting temporary file: {str(e)}", type_="ERROR")
+
+            for path in file_paths:
+                file_size = os.path.getsize(path) / (1024 * 1024)
+                if file_size > size_threshold:
+                    await msg.edit(content="⏳ File exceeds Discord limit, uploading to litterbox.catbox.moe...")
+                    try:
+                        litterbox_url = await upload_to_litterbox(path)
+                        await ctx.send(
+                            f"📁 File uploaded to: {litterbox_url}\n⚠️ Note: This link will expire in {getConfigData().get(LITTERBOX_EXPIRY_KEY, '24h')}"
+                        )
+                        await msg.delete()
+                    except Exception as upload_error:
+                        await msg.edit(content=f"❌ Failed to upload to litterbox: {str(upload_error)}")
+                else:
+                    await msg.edit(content=f"⏳ Sending file ({file_size:.2f} MB)")
+                    try:
+                        await ctx.send(file=discord.File(path))
+                        await msg.delete()
+                    except Exception as e:
+                        if "413 Payload Too Large" in str(e):
+                            await msg.edit(content="⏳ File too large for Discord, uploading to litterbox.catbox.moe...")
+                            try:
+                                litterbox_url = await upload_to_litterbox(path)
+                                await ctx.send(
+                                    f"📁 File uploaded to: {litterbox_url}\n⚠️ Note: This link will expire in {getConfigData().get(LITTERBOX_EXPIRY_KEY, '24h')}"
+                                )
+                                await msg.delete()
+                            except Exception as upload_error:
+                                await msg.edit(content=f"❌ Failed to upload to litterbox: {str(upload_error)}")
+                        else:
+                            raise
+
+                if not getConfigData().get(PERSISTENT_STORAGE_KEY, False):
+                    try:
+                        os.remove(path)
+                        debug_log(f"Temporary file deleted: {path}", type_="SUCCESS")
+                    except Exception as e:
+                        debug_log(f"Error deleting temporary file: {str(e)}", type_="ERROR")
         
         except Exception as e:
             error_str = str(e)
