@@ -596,6 +596,7 @@ def unified_cobalt_script():
                                 )
                                 try:
                                     path = await download_file(item_url, filename, referer=url)
+
                                     downloaded_paths.append(path)
                                 except Exception as e:
                                     error_str = str(e)
@@ -628,6 +629,7 @@ def unified_cobalt_script():
                                 try:
                                     audio_path = await download_file(
                                         audio_url, audio_filename, referer=url
+
                                     )
                                     downloaded_paths.append(audio_path)
                                 except Exception as e:
