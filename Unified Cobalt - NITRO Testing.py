@@ -5,13 +5,14 @@
     usage="""<p>c <url> [-720p] [-wav] [-audio] (cobalt downloader)
 <p>cg <url> [-fps=<fps>] [-scale=<width>:-1] [-time=<start>-<end>] [-optimize] [-720p] (cobalt gif converter)
 <p>v2g <url or attachment> [-fps=<fps>] [-scale=<width>:-1] [-time=<start>-<end>] [-optimize] [-720p] [-speed=<factor>] (direct ffmpeg gif converter)
-<p>c|cg|v2g url <your_local_cobalt_url>
-<p>c|cg|v2g path <download_path>
-<p>c|cg|v2g debug
-<p>c|cg|v2g persistent
-<p>c|cg|v2g lb <1|12|24|72> (set litterbox expiry time in hours)
-<p>c|cg|v2g limit <size_mb> (set file size limit before using litterbox)
-<p>c|cg|v2g status"""
+<p>v2mp3 <url or attachment> [-time=<start>-<end>] (video to mp3 converter)
+<p>c|cg|v2g|v2mp3 url <your_local_cobalt_url>
+<p>c|cg|v2g|v2mp3 path <download_path>
+<p>c|cg|v2g|v2mp3 debug
+<p>c|cg|v2g|v2mp3 persistent
+<p>c|cg|v2g|v2mp3 lb <1|12|24|72> (set litterbox expiry time in hours)
+<p>c|cg|v2g|v2mp3 limit <size_mb> (set file size limit before using litterbox)
+<p>c|cg|v2g|v2mp3 status"""
 )
 def unified_cobalt_script():
     """
@@ -360,6 +361,23 @@ def unified_cobalt_script():
             "dither": dither_match.group(1) if dither_match else "bayer:bayer_scale=5",
             "colors": int(colors_match.group(1)) if colors_match else 256,
             "speed": float(speed_match.group(1)) if speed_match else 1.0  # Add speed to return dict
+        }
+
+    # Helper function to parse v2mp3 arguments
+    def parse_v2mp3_args(args_str):
+        """Parse arguments for the v2mp3 command"""
+        cobalt_args = parse_cobalt_args(args_str)
+
+        time_match = re.search(r'-time=(\d+(?:\.\d+)?)-(\d+(?:\.\d+)?)', args_str)
+
+        url = cobalt_args["url"]
+        if time_match and time_match.group(0) in url:
+            url = url.replace(time_match.group(0), "").strip()
+
+        return {
+            "url": url.strip(),
+            "quality": cobalt_args["quality"],
+            "time": time_match.group(1) + "-" + time_match.group(2) if time_match else None,
         }
     
     # Helper function to run docker commands
@@ -1187,6 +1205,101 @@ def unified_cobalt_script():
                     user_msg += "\nthis might be due to anti-bot measures. try again in a few minutes."
             debug_log(f"error: {error_str}", type_="ERROR")
             await msg.edit(content=user_msg)
+
+    @bot.command(name="v2mp3", description="Convert video or URL to MP3")
+    async def v2mp3_command(ctx, *, args: str = ""):
+        """Extract MP3 audio from a video attachment or URL"""
+        if ctx.author.bot:
+            return
+        await ctx.message.delete()
+
+        if args.lower().startswith(("url ", "path ", "debug", "persistent", "lb", "limit ", "lbt ", "status", "resetsetup")):
+            await handle_config_command(ctx, args, "v2mp3")
+            return
+
+        audio_path = None
+        video_path = None
+
+        if ctx.message.attachments:
+            attachment = ctx.message.attachments[0]
+            if not any(attachment.filename.lower().endswith(ext) for ext in ['.mp4', '.mov', '.avi', '.mkv', '.webm']):
+                await ctx.send("please attach a video file (mp4, mov, avi, mkv, webm)")
+                return
+            msg = await ctx.send("downloading attachment...")
+            try:
+                video_path = await download_file(attachment.url, attachment.filename)
+            except Exception as e:
+                await msg.edit(content=f"error downloading attachment: {str(e)}")
+                return
+
+            output_dir = ensure_download_dir(persistent=True)
+            mp3_filename = os.path.splitext(os.path.basename(video_path))[0] + ".mp3"
+            audio_path = os.path.join(output_dir, mp3_filename)
+            await msg.edit(content="converting to mp3...")
+            ffmpeg_cmd = (
+                f'docker run --rm -v "{os.path.dirname(video_path)}:/input" -v "{output_dir}:/output" jrottenberg/ffmpeg '
+                f'-y -i /input/{os.path.basename(video_path)} -vn -acodec libmp3lame /output/{mp3_filename}'
+            )
+            try:
+                await run_docker_cmd(ffmpeg_cmd)
+            except Exception as e:
+                await msg.edit(content=f"ffmpeg error: {str(e)}")
+                return
+        else:
+            if not args:
+                await ctx.send("❌ please provide a url or attach a video file")
+                return
+
+            first_word = args.split()[0].lower()
+            if first_word in ["url", "path", "debug", "persistent", "lb", "limit", "lbt", "status", "resetsetup"]:
+                await handle_config_command(ctx, args, "v2mp3")
+                return
+
+            parsed_args = parse_v2mp3_args(args)
+            url_to_download = parsed_args["url"]
+            if not url_to_download:
+                await ctx.send("could not parse url from arguments.")
+                return
+
+            msg = await ctx.send("downloading audio via cobalt...")
+            try:
+                audio_path = await download_from_cobalt(url_to_download, parsed_args["quality"], "mp3", "audio")
+            except Exception as e:
+                await msg.edit(content=f"error downloading: {str(e)}")
+                return
+
+        if not audio_path or not os.path.exists(audio_path):
+            await msg.edit(content="conversion failed")
+            return
+
+        file_size = os.path.getsize(audio_path) / (1024 * 1024)
+        size_threshold = float(getConfigData().get(LITTERBOX_SIZE_THRESHOLD_MB_KEY, 50))
+
+        if file_size > size_threshold:
+            await msg.edit(content="uploading to litterbox.catbox.moe...")
+            try:
+                litterbox_url = await upload_to_litterbox(audio_path)
+                await ctx.send(f"file uploaded to: {litterbox_url}\nnote: this link will expire in {getConfigData().get(LITTERBOX_EXPIRY_KEY, '24h')}")
+                await msg.delete()
+            except Exception as e:
+                await msg.edit(content=f"failed to upload: {str(e)}")
+        else:
+            await msg.edit(content=f"sending file ({file_size:.2f}mb)...")
+            try:
+                await ctx.send(file=discord.File(audio_path))
+                await msg.delete()
+            except Exception as e:
+                await msg.edit(content=f"error sending file: {str(e)}")
+
+        if not getConfigData().get(PERSISTENT_STORAGE_KEY, False):
+            try:
+                if video_path and os.path.exists(video_path):
+                    os.remove(video_path)
+                if audio_path and os.path.exists(audio_path):
+                    os.remove(audio_path)
+                debug_log("Temporary files deleted", type_="SUCCESS")
+            except Exception as e:
+                debug_log(f"Error deleting temporary files: {str(e)}", type_="ERROR")
     
     @bot.command(name="cobaltgif", aliases=["cg"], description="Download and convert media to GIF using Cobalt")
     async def cobalt_gif_command(ctx, *, args: str = ""):

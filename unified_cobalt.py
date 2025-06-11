@@ -5,13 +5,14 @@
     usage="""<p>c <url> [-720p] [-wav] [-audio] (Cobalt downloader)
 <p>cg <url> [-fps=<fps>] [-scale=<width>:-1] [-time=<start>-<end>] [-optimize] [-720p] (Cobalt GIF converter)
 <p>v2g <url or attachment> [-fps=<fps>] [-scale=<width>:-1] [-time=<start>-<end>] [-optimize] [-720p] [-speed=<factor>] (Direct FFmpeg GIF converter)
-<p>c|cg|v2g url <your_local_cobalt_url>
-<p>c|cg|v2g path <download_path>
-<p>c|cg|v2g debug
-<p>c|cg|v2g persistent
-<p>c|cg|v2g lb <1|12|24|72> (Set litterbox expiry time in hours)
-<p>c|cg|v2g limit <size_mb> (Set file size limit before using Litterbox)
-<p>c|cg|v2g status"""
+<p>v2mp3 <url or attachment> [-time=<start>-<end>] (Video to MP3 converter)
+<p>c|cg|v2g|v2mp3 url <your_local_cobalt_url>
+<p>c|cg|v2g|v2mp3 path <download_path>
+<p>c|cg|v2g|v2mp3 debug
+<p>c|cg|v2g|v2mp3 persistent
+<p>c|cg|v2g|v2mp3 lb <1|12|24|72> (Set litterbox expiry time in hours)
+<p>c|cg|v2g|v2mp3 limit <size_mb> (Set file size limit before using Litterbox)
+<p>c|cg|v2g|v2mp3 status"""
 )
 def unified_cobalt_script():
     """
