@@ -97,9 +97,10 @@ A comprehensive suite of tools for downloading media and converting videos to GI
  - Time: `-time=<start>-<end>` (in seconds, decimals allowed)
  - Optimize: `-optimize` (reduces file size)
  - Loop: `-loop=<number>` (default: 0, -1 for infinite)
- - Dither: `-dither=<method>` (default: bayer:bayer_scale=5)
- - Colors: `-colors=<number>` (default: 256)
- - Speed: `-speed=<factor>` (default: 1.0, e.g. 0.5 for half speed, 2.0 for double speed)
+- Dither: `-dither=<method>` (default: bayer:bayer_scale=5)
+- Colors: `-colors=<number>` (default: 256)
+- Speed: `-speed=<factor>` (default: 1.0, e.g. 0.5 for half speed, 2.0 for double speed)
+   - Speed adjustments are applied with `gifsicle`, ensuring the GIF loops cleanly.
 
 ## Examples
 
