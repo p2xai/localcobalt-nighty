@@ -9,6 +9,7 @@ A comprehensive suite of tools for downloading media and converting videos to GI
 - **Cobalt Downloader**: Download media from various platforms using the Cobalt API
 - **Cobalt GIF Converter**: Download and convert videos to optimized GIFs
 - **Direct FFmpeg GIF Converter**: Convert videos to GIFs with advanced FFmpeg parameters
+- **Video to MP3 Converter**: Extract MP3 audio from videos or URLs
 
 ### Key Features
 - Download media from supported platforms
@@ -36,7 +37,7 @@ A comprehensive suite of tools for downloading media and converting videos to GI
    ```yaml
    services:
      cobalt-api:
-       image: ghcr.io/imputnet/cobalt:10
+       image: ghcr.io/imputnet/cobalt:11
        init: true
        read_only: true
        restart: unless-stopped
@@ -76,6 +77,10 @@ A comprehensive suite of tools for downloading media and converting videos to GI
    - If called without arguments, the command checks the previous message for a video attachment or direct link.
  - Configure: `<p>v2g url|path|debug|persistent|limit|status`
 
+### 4. Video to MP3 (`<p>v2mp3`)
+ - Extract MP3 audio from a URL or attached video
+ - Configure: `<p>v2mp3 url|path|debug|persistent|limit|status`
+
 ## Parameters
 
 ### Cobalt Downloader
@@ -101,6 +106,10 @@ A comprehensive suite of tools for downloading media and converting videos to GI
 - Colors: `-colors=<number>` (default: 256)
 - Speed: `-speed=<factor>` (default: 1.0, e.g. 0.5 for half speed, 2.0 for double speed)
    - Speed adjustments are applied with `gifsicle`, ensuring the GIF loops cleanly.
+
+### Video to MP3
+ - Quality: `-144p` to `-4320p`, `-max`
+ - Time: `-time=<start>-<end>` (optional segment)
 
 ## Examples
 
@@ -137,6 +146,11 @@ A comprehensive suite of tools for downloading media and converting videos to GI
 7. Check the status of your Cobalt setup:
    ```
    <p>c status
+   ```
+
+8. Extract MP3 from a video URL:
+   ```
+   <p>v2mp3 https://www.youtube.com/watch?v=dQw4w9WgXcQ
    ```
 
 ## Notes
