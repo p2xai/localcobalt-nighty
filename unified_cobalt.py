@@ -729,20 +729,14 @@ def unified_cobalt_script():
         if not os.path.exists(palette_path):
             raise Exception(f"Failed to generate palette image")
         
-        # Convert to GIF with speed modification if specified
+        # Convert to GIF
         vf_parts = []
-        
-        # Add basic filters
+
+        # Ensure consistent frame rate and scaling
+        vf_parts.append(f"fps={fps}")
         vf_parts.append(f"scale={scale}:flags=lanczos")
-        
-        # Handle speed changes
-        if speed != 1.0:
-            # First apply speed change
-            vf_parts.append(f"setpts={1/speed}*PTS")
-            # Then force consistent frame rate
-            vf_parts.append(f"fps={fps}")
-        
-        # Add palette use with dithering for better quality
+
+        # Palette generation and usage
         vf_parts.append("split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse=dither=bayer:bayer_scale=5")
         
         # Join filters with commas
@@ -767,6 +761,16 @@ def unified_cobalt_script():
         gif_path = os.path.join(output_dir, gif_filename)
         if not os.path.exists(gif_path):
             raise Exception(f"GIF file not found")
+
+        # Adjust playback speed by modifying frame delay
+        if speed != 1.0:
+            base_delay = 100 / fps
+            new_delay = max(1, int(round(base_delay / speed)))
+            delay_cmd = (
+                f'docker run --rm -v "{output_dir}:/src" dylanninin/giflossy '
+                f'gifsicle --batch --no-warnings --delay={new_delay} /src/{gif_filename}'
+            )
+            await run_docker_cmd(delay_cmd)
         
         # Check initial size
         initial_size = os.path.getsize(gif_path) / (1024 * 1024)
@@ -1363,9 +1367,6 @@ def unified_cobalt_script():
         vf_parts.append(f"fps={parsed_args['fps']}")
         vf_parts.append(f"scale={parsed_args['scale']}:flags=lanczos")
         
-        # Add speed modification if specified
-        if parsed_args["speed"] != 1.0:
-            vf_parts.append(f"setpts={1/parsed_args['speed']}*PTS")
         
         # Palette generation
         if parsed_args["optimize"]:
@@ -1391,10 +1392,20 @@ def unified_cobalt_script():
             )
             debug_log(f"Running FFmpeg command: {ffmpeg_cmd}", type_="INFO")
             await run_docker_cmd(ffmpeg_cmd)
-            
+
             if not os.path.exists(gif_path):
                 raise Exception("GIF file not found")
-            
+
+            # Adjust playback speed by modifying frame delay
+            if parsed_args["speed"] != 1.0:
+                base_delay = 100 / parsed_args["fps"]
+                new_delay = max(1, int(round(base_delay / parsed_args["speed"])))
+                delay_cmd = (
+                    f'docker run --rm -v "{output_dir}:/src" dylanninin/giflossy '
+                    f'gifsicle --batch --no-warnings --delay={new_delay} /src/{gif_filename}'
+                )
+                await run_docker_cmd(delay_cmd)
+
             # Check size
             final_size = os.path.getsize(gif_path) / (1024 * 1024)
             size_threshold = float(getConfigData().get(LITTERBOX_SIZE_THRESHOLD_MB_KEY, 8))
