@@ -37,7 +37,7 @@ A comprehensive suite of tools for downloading media and converting videos to GI
    ```yaml
    services:
      cobalt-api:
-       image: ghcr.io/imputnet/cobalt:10
+       image: ghcr.io/imputnet/cobalt:11
        init: true
        read_only: true
        restart: unless-stopped

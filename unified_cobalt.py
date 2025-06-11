@@ -46,7 +46,7 @@ def unified_cobalt_script():
 ```yaml
     services:
       cobalt-api:
-        image: ghcr.io/imputnet/cobalt:10
+        image: ghcr.io/imputnet/cobalt:11
         init: true
         read_only: true
         restart: unless-stopped
